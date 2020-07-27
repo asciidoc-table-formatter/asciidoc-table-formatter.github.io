@@ -1,0 +1,556 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><link rel="apple-touch-icon" sizes="120x120" href="https://github.com/rououtliner/rououtliner.github.io/blob/master/RouOutliner.png?raw=true">
+
+
+    <title>Asciidoc Table formatter v2</title>
+    <script type="text/javascript">
+
+var textarea;
+var markdown;
+var localStorageKey = 'content';
+window.onload = init;
+
+function init()
+{
+	var wd = "# Asciidoc Table Formatter  \n\n";
+  wd = wd + 'Usage:\n'
+  wd = wd + '\n'
+  wd = wd + '1. Create table in google spreadsheet\n'
+  wd = wd + '2. Add cell modifier with a pair of `#` before value in the cell needed\n'
+  wd = wd + '  * E.g. If the cell have value "111" and if you want the cell with col span=2, change cell value to "#2+#111"\n'
+  wd = wd + '3. Add #0# before cell value if you don\'t want to have pipe character due to row span / col span\n'
+  wd = wd + '4. Add the asciidoc format in the cell e.g. "[blue]#value#"\n'
+  wd = wd + '5. Click Format\n'
+  wd = wd + '\n'
+  wd = wd + 'Example:\n\n'
+	wd = wd + "Input:\n"
+	wd = wd + "```\n"
+  wd = wd + "header1\theader2\theader3\n"
+  wd = wd + "#2+#1\t#0#2\t#a#3\n"
+  wd = wd + "aaa\t#.2+#bbb\tccc\n"
+  wd = wd + "4\t#0#5\t6\n"
+	wd = wd + "```\n"
+	wd = wd + "\n";
+	wd = wd + "Output by clicking Format button:\n\n"
+	wd = wd + "```\n"
+  wd = wd + '[cols="7s,7,7", options="header"]\n'
+  wd = wd + '|===\n'
+  wd = wd + '  |header1    |header2  |header3\n'
+  wd = wd + '2+|1           2       a|3      \n'
+  wd = wd + '  |aaa     .2+|bbb      |ccc    \n'
+  wd = wd + '  |4           5        |6      \n'
+  wd = wd + '|===\n'
+	wd = wd + "```\n"
+	wd = wd + "\n";
+
+
+
+    textarea = document.getElementById("textarea");
+    markdown = document.getElementById("markdown");
+
+    markdown.style.display = 'none';
+    textarea.style.display = '';
+
+	//displayFontSize();
+	textarea.style.fontSize = 14 + "px";
+
+    //getRegContent();
+	textarea.value = wd;
+
+
+    textarea.select();
+    setSelectedRange(0, 0);
+}
+
+function tableAsciiDoc()
+{
+  table("ASCIIDOC");
+}
+
+function table(mode) {
+    var alertTxt = '';
+
+    // grab all content
+    var text = '';
+    var selectedRange = getSelectedRange();
+    var selectedMode = (selectedRange[1] == 0);
+    if (selectedMode)
+    {
+        text = getText();
+    }
+    else
+    {
+        text = getSelectedText();
+    }
+
+    // get max column number
+    var lineData = text.split('\n');
+    var rowNum = lineData.length;
+    var colNum = 1;
+    for (i = 0; i < rowNum; i++)
+    {
+        var currentLineColNum = lineData[i].split('\t').length;
+        if (currentLineColNum > colNum)
+        {
+            colNum = currentLineColNum;
+        }
+    }
+    alertTxt = alertTxt + '\nColNum=' + colNum;
+
+    // create data array[row][col] to place data, data[row][col]
+    var data = new Array(rowNum);
+    var status = new Array(rowNum);
+    var isNoPipe = new Array(rowNum);
+
+    for (var i = 0; i < rowNum; i++)
+    {
+        data[i] = new Array(colNum);
+        status[i] = new Array(colNum);
+        isNoPipe[i] = new Array(colNum);
+    }
+
+    // create array[col] to record column max length, maxLength[col]
+    var colMaxLength = new Array(colNum);
+
+    // create array[col] to record max length of the statusWithPound
+    var colStatusMaxLength = new Array(colNum);
+
+    // create array[row] to record whether it should be tableize (boolean) shouldTableize[row]
+    var shouldTableize = new Array(rowNum);
+
+    // find whether the row should be tableize for each row and put to array[row]
+    for (var i = 0; i < rowNum; i++)
+    {
+        if (lineData[i].split('\t').length < colNum)
+        {
+            shouldTableize[i] = false;
+        }
+        else
+        {
+            shouldTableize[i] = true;
+        }
+        alertTxt = alertTxt + '\nRow ' + i + '=' + shouldTableize[i];
+    }
+
+    // put split data to the data array[row][col]
+    for (var i = 0; i < rowNum; i++)
+    {
+        var colData = lineData[i].split('\t');
+        var colLength = colData.length;
+        for (var j = 0; j < colLength; j++)
+        {
+            // data[i][j] = colData[j].replace(/\s*$/,"");;
+            var text2 = colData[j].replace(/\s*$/,"");
+            // console.log("===" + i + "" + j + "=" + text2);
+
+            if (text2.startsWith("#0#"))
+            {
+              data[i][j] = text2.replace("#0#", "");
+              status[i][j] = ""
+              isNoPipe[i][j] = true;
+            }
+            else if (text2.startsWith("#"))
+            {
+               var secondIndex = getPosition(text2, "#", 2);
+               var statusWithPound = text2.substring(0, secondIndex + 1);
+               console.log("###" + i + "," + j + "=" + secondIndex + " " + statusWithPound);
+               status[i][j] = statusWithPound.replace("#", "").replace("#", "");
+               data[i][j] = text2.replace(statusWithPound, "");
+               isNoPipe[i][j] = false;
+               // console.log(secondIndex);
+            }
+            else
+            {
+               data[i][j] = text2;
+               status[i][j] = ""
+               isNoPipe[i][j] = false;
+            }
+            console.log(i + "," + j + "=" + data[i][j] + "," + status[i][j] + "," + isNoPipe[i][j]);
+            alertTxt = alertTxt + '\n' + data[i][j];
+        }
+    }
+
+    // calculate and put max length of column to array[col], need to skip array[row] = false
+    for (var j = 0; j < colNum; j++)
+    {
+        eachColMaxLength = 0;
+        eachColStatusMaxLength = 0;
+        for (var i = 0; i < rowNum; i++)
+        {
+            if (shouldTableize[i])
+            {
+                if (data[i][j] != undefined)
+                {
+                  var dataLength = String(data[i][j]).length;
+                  alertTxt = alertTxt + '\n' + dataLength;
+                  if (dataLength > eachColMaxLength)
+                  {
+                      eachColMaxLength = dataLength;
+                  }
+                }
+                if (status[i][j] != undefined)
+                {
+                  var dataLength = String(status[i][j]).length;
+                  alertTxt = alertTxt + '\n' + dataLength;
+                  if (dataLength > eachColStatusMaxLength)
+                  {
+                      eachColStatusMaxLength = dataLength;
+                  }
+                }
+            }
+        }
+        colMaxLength[j] = eachColMaxLength;
+        colStatusMaxLength[j] = eachColStatusMaxLength;
+        alertTxt = alertTxt + '\nCol ' + j + '=' + colMaxLength[j];
+        alertTxt = alertTxt + '\nCol ' + j + '=' + colStatusMaxLength[j];
+    }
+
+
+    // enrich spaces for each cell
+    for (var i = 0; i < rowNum; i++)
+    {
+        if (shouldTableize[i])
+        {
+            for (var j = 0; j < colNum; j++)
+            {
+                var spaceNum = colMaxLength[j] - String(data[i][j]).length;
+                for (var spaceCount = 0; spaceCount < spaceNum; spaceCount++)
+                {
+                    data[i][j] = data[i][j] + ' ';
+                }
+            }
+        }
+    }
+
+    // join the array
+    var finalLineData = new Array(rowNum);
+    var isMarkdownTable = true;
+    for(var i = 0; i < rowNum; i++)
+    {
+        if (shouldTableize[i])
+        {
+            // finalLineData[i] = data[i].join('     |');
+            // finalLineData[i] = data[i].join(getPipeWithStatus(status, isPipe, maxStatusLength));
+            var text3 = "";
+            var withStartingExtraSpace = false; // first col no need extra space
+            for (var j = 0; j < colNum; j++)
+            {
+              text3 = text3 + getPipeWithStatus(withStartingExtraSpace, status[i][j], isNoPipe[i][j], colStatusMaxLength[j]) + data[i][j];
+              withStartingExtraSpace = true;
+            }
+
+            finalLineData[i] = text3
+
+            console.log(finalLineData[i]);
+        }
+        else
+        {
+            finalLineData[i] = data[i][0];
+        }
+    }
+    var finalText = (mode == "ASCIIDOC") ?
+      createHeader(colNum, colMaxLength) + '\n' + "|===" + '\n' + finalLineData.join('\n').replace(/\n+$/, "") + "\n|===" + '\n' :
+      finalLineData.join('\n').replace(/\n+$/, "")
+
+
+    // replace with selected data
+    //alertTxt = alertTxt + '\n' + finalText;
+    if (selectedMode)
+    {
+        setTextInRange(0, text.length, finalText);
+    }
+    else
+    {
+        setTextInRange(selectedRange[0], selectedRange[1], finalText);
+        setSelectedRange(selectedRange[0], finalText.length);
+    }
+}
+
+//------------------------------------------------------------------------------------------
+
+function getPosition(string, subString, index)
+{
+  return string.split(subString, index).join(subString).length;
+}
+
+function getPipeWithStatus(withStartingExtraSpace, status, isNoPipe, maxStatusLength)
+{
+  if (isNoPipe)
+  {
+    return (withStartingExtraSpace ? " " : "") + " ".repeat(maxStatusLength) + " ";
+  }
+  return (withStartingExtraSpace ? " " : "") + " ".repeat(maxStatusLength - status.length) + status + "|";
+}
+
+function createHeader(numCol, colMaxLength)
+{
+  var text = '[cols="';
+  text = text + colMaxLength[0];
+  for (var j = 1; j < numCol; j++)
+  {
+    text = text + ',' + colMaxLength[j];
+  }
+  text = text + '", options="header"]';
+  return text;
+}
+
+//------------------------------------------------------------------------------------------
+// Drafts function
+
+function getText()
+{
+    // returns the full text currently being edited
+    return textarea.value;
+}
+
+function setText(string)
+{
+    // replaces full text being edited with string
+    textarea.value = string;
+}
+
+function getSelectedText()
+{
+    // return only the selected text. If no text selection exists, this will return an empty string.
+    return getMiddleCursorSelection();
+}
+
+function setSelectedText(string)
+{
+    // Replace only the current selected text range with the string. Also updates the selected range to match any change in length of the new string.
+    textarea.value = getBeforeCursorSelection() + string + getAfterCursorSelection();
+}
+
+function getTextInRange(start, length)
+{
+
+    // Return text in the request range.
+    return textarea.value.substring(start, start + length);
+}
+
+function setTextInRange(start, length, string)
+{
+    // Replace the text in the specified range with the value of string.
+    var text = string;
+
+    // method 1
+    //textarea.value = textarea.value.substring(0, start) + string + textarea.value.substring(start + length, textarea.value.length);
+
+    // method 2
+    setSelectedRange(start, length);
+    document.execCommand('insertText', false, text);
+
+    // method 3
+    //var event = document.createEvent('TextEvent');
+    //setSelectedRange(start, length);
+    //event.initTextEvent('textInput', true, true, null, text || "\0");
+    //textarea.dispatchEvent(event); // fire the event on the the textarea
+}
+function getSelectedLineRange()
+{
+    // Returns the range (start,length) of the full line based on the current cursor position
+    return getCurrentLine(getCursor());
+}
+function getSelectedRange()
+{
+    // Returns the current selected text range as an array with values [start, length].
+    var result = new Array();
+    result[0] = textarea.selectionStart;
+    result[1] = textarea.selectionEnd - textarea.selectionStart;
+    return result;
+}
+function setSelectedRange(start, length)
+{
+    // Set the selected range of text. Invalid ranges will be automatically adjusted, and this text selection will be applied after successful completion of the script.
+    setSelectionRange(start, start + length);
+}
+function getClipboard()
+{
+    // Returns current contents of the system clipboard.
+    // Not supported yet
+}
+function setClipboard(string)
+{
+
+    // Set the system clipboard to the string passed.
+    // Not supported yet
+}
+function markdown(string, useXHTML)
+{
+
+    // runs the string through the Markdown processor returning HTML.
+    // Not supported yet
+}
+function encodeHTMLEntities(string)
+{
+    // Encodes the string to HTML safe entities, e.g. converting & to &amp;
+    // Not supported yet
+}
+function decodeHTMLEntities(string)
+{
+    //Decodes HTML entities.
+    // Not supported yet
+}
+
+//---------------------------------------------------------------------------------------------------
+// Drafts adapter function
+
+function setSelectionRange(selectionStart, selectionEnd)
+{
+    if (textarea.setSelectionRange)
+    {
+        textarea.focus();
+        textarea.setSelectionRange(selectionStart, selectionEnd);
+    }
+    else if (textarea.createTextRange)
+    {
+        var range = textarea.createTextRange();
+        range.collapse(true);
+        range.moveEnd('character', selectionEnd);
+        range.moveStart('character', selectionStart);
+        range.select();
+    }
+}
+
+function setCaretToPos(pos)
+{
+    setSelectionRange(pos, pos);
+}
+
+function getSurroundingSelection()
+{
+    return [textarea.value.substring(0, textarea.selectionStart)
+        ,textarea.value.substring(textarea.selectionStart, textarea.selectionEnd)
+        ,textarea.value.substring(textarea.selectionEnd, textarea.value.length)]
+}
+function getBeforeCursorSelection()
+{
+    return textarea.value.substring(0, textarea.selectionStart);
+}
+function getMiddleCursorSelection()
+{
+    return textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
+}
+function getAfterCursorSelection()
+{
+    return textarea.value.substring(textarea.selectionEnd, textarea.value.length);
+}
+
+    </script>
+
+    <style>
+
+@charset "utf-8";
+
+div {
+    font-family: Helvetica, Arial, Freesans, clean, sans-serif;
+	padding:1em;
+	margin:auto;
+	max-width:42em;
+}
+
+p {
+	line-height: 150%;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+th, td {
+    text-align: left;
+    padding-left: 8px;
+    padding-right: 40px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+tr:nth-child(even) {
+	background-color: #fbfbfb
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: bold;
+}
+
+h1 {
+    color: #000000;
+    font-size: 28px;
+}
+
+h2 {
+    border-bottom: 1px solid #CCCCCC;
+    color: #000000;
+    font-size: 24px;
+}
+
+h3 {
+    font-size: 18px;
+}
+
+h4 {
+    font-size: 16px;
+}
+
+h5 {
+    font-size: 14px;
+}
+
+h6 {
+    color: #777777;
+    background-color: inherit;
+    font-size: 14px;
+}
+
+hr {
+    height: 0.2em;
+    border: 0;
+    color: #CCCCCC;
+    background-color: #CCCCCC;
+}
+
+p, blockquote, ul, ol, dl, li, table, pre {
+    margin: 15px 0;
+}
+
+code, pre {
+    border-radius: 3px;
+    background-color: #F8F8F8;
+    color: inherit;
+}
+
+code {
+    border: 1px solid #EAEAEA;
+    margin: 0 2px;
+    padding: 0 5px;
+}
+
+pre {
+    border: 1px solid #CCCCCC;
+    line-height: 1.25em;
+    overflow: auto;
+    padding: 6px 10px;
+}
+
+pre > code {
+    border: 0;
+    margin: 0;
+    padding: 0;
+}
+
+a, a:visited {
+    color: #4183C4;
+    background-color: inherit;
+    text-decoration: none;
+}
+
+    </style>
+</head>
+
+<body>
+	<button onclick="tableAsciiDoc()">AsciiDoc Format</button>
+    <textarea id="textarea" style="width: 100%; height: 95%; font-family: monospace; font-size: 14px;"></textarea>
+    <div id="markdown" style="display: none;"></div>
+    <div id="console" hidden=""></div>
+
+
+<style type="text/css">#EkleguLightBox {display:none; background:#fff; opacity:1; position:fixed; top:10%; left:5%; width:290px; height:60px; z-index:1000; border:2px solid #000;margin: 0px; padding:10px; padding-top:5px;}#EkleguLightBox > dl {margin: 0px; padding:0px;}#EkleguLightBox > dl > dt {margin: 0px; padding:0px; padding-top:5px; font-family:'Times New Roman',serif; font-size:14px; color:black; line-height: 1.0; font-weight: bold; text-decoration: none; background: transparent;}#EkleguLightBox > dl > dd {margin: 0px; padding:0px; padding-top:2px; font-family:'Times New Roman',serif; font-size:14px; color:black; line-height: 1.0; font-weight: normal; text-decoration: none; background: transparent;}</style><div id="EkleguLightBox" style="display: none;"></div></body></html>
