@@ -1,6 +1,6 @@
 # Asciidoc Table Formatter
 
-This web tools helps to format the [table syntax in asciidoc](https://asciidoctor.org/docs/asciidoc-syntax-quick-reference/#tables) and maintained by [@hkw1831](https://github.com/hkw1831).
+This web tools helps to format the [table syntax in asciidoc](https://asciidoctor.org/docs/asciidoc-syntax-quick-reference/#tables).
 
 Demo site in [here](https://asciidoc-table-formatter.github.io).
 
