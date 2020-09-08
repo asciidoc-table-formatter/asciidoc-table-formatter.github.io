@@ -6,12 +6,15 @@ Demo site in [here](https://asciidoc-table-formatter.github.io).
 
 ## Usage:
 
-1. Create table in google spreadsheet
-2. Add cell modifier with a pair of `#` before value in the cell needed
-  * E.g. If the cell have value "111" and if you want the cell with col span=2, change cell value to "#2+#111"
-3. Add #0# before cell value if you don't want to have pipe character due to row span / col span
-4. Add the asciidoc format in the cell e.g. "[blue]#value#"
-5. Click Format
+1. Create table in google sheets and add contents
+    * You can add following characters inside the google sheets cell for specific operations:
+        * Add cell modifier with a pair of `#` before value in the cell needed
+            * E.g. To set the cell with col span=2 (which is `2+|<content>` in asciidoc syntax), change cell value in google sheets to "#2+#<content>"
+        * Add #0# before cell value if you don't want to have pipe character due to row span / col span
+        * Add the asciidoc format in the cell e.g. "[blue]#value#" will make the content "value" becomes blue (which is asciidoc format)
+2. Inside google sheets, drag the cells you want to format and copy it.
+3. Clear this textbox and paste the selection inside this textbox, the pasted content should be tab-separated.
+4. Click "Format" button. The AsciiDoc table should be created.
 
 ## Example:
 
@@ -35,10 +38,9 @@ Output by clicking Format button:
 |===
 ```
 
-## Constriant
+## Limitation:
 
-Since the multiple line in google spreadsheets is troublesome, this formattor does not support multiple line content
-
-Instead, you can state `:br: pass:[<br/>]` as [AsciiDoc attribute](https://www.methods.co.nz/asciidoc/chunked/ch28.html), then you can state something like `line1{br}line2` in the cell in google spreadsheets and render as multiple line.
+* Content in each cell inside google sheets must be in single line only, otherwise this tool cannot render correctly
+    * E.g. If you want to have newline you can state `:br: pass:[<br/>]` as [AsciiDoc attribute](http://asciidoc.github.io/asciidoc/chunked/ch28.html), then you can state something like line1{br}line2 in the cell in google spreadsheets and render as multiple line.
 
 To see more about how to insert sequential blank lines, please visit [this page](https://github.com/asciidoctor/asciidoctor/wiki/How-to-insert-sequential-blank-lines).
