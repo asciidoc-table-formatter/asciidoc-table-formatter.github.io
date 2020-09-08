@@ -8,13 +8,17 @@ Demo site in [here](https://asciidoc-table-formatter.github.io).
 
 1. Create table in google sheets and add contents
     * You can add following characters inside the google sheets cell for specific operations:
+        * Add the asciidoc format in the cell e.g. "[blue]#value#" will make the content "value" becomes blue (which is AsciiDoc syntax)
         * Add cell modifier with a pair of `#` before value in the cell needed
             * E.g. To set the cell with col span=2 (which is `2+|<content>` in asciidoc syntax), change cell value in google sheets to "#2+#<content>"
         * Add #0# before cell value if you don't want to have pipe character due to row span / col span
-        * Add the asciidoc format in the cell e.g. "[blue]#value#" will make the content "value" becomes blue (which is asciidoc format)
 2. Inside google sheets, drag the cells you want to format and copy it.
 3. Clear this textbox and paste the selection inside this textbox, the pasted content should be tab-separated.
 4. Click "Format" button. The AsciiDoc table should be created.
+
+In short:
+
+![Instructions](https://github.com/asciidoc-table-formatter/asciidoc-table-formatter.github.io/blob/master/Instruction.jpeg?raw=true)
 
 ## Example:
 
