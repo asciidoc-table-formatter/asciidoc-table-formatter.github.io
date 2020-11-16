@@ -125,7 +125,7 @@ For more on how to insert blank lines, see https://github.com/asciidoctor/asciid
             data[i][j] = text2.replace("#0#", "");
             status[i][j] = ""
             isNoPipe[i][j] = true;
-          } else if (text2.startsWith("#")) {
+          } else if (text2.startsWith("#") && countOccurences(text2, "#") >= 2) {
             var secondIndex = getPosition(text2, "#", 2);
             var statusWithPound = text2.substring(0, secondIndex + 1);
             status[i][j] = statusWithPound.replace("#", "").replace("#", "");
@@ -232,6 +232,10 @@ For more on how to insert blank lines, see https://github.com/asciidoctor/asciid
       }
       text = text + '", options="header"]';
       return text;
+    }
+
+    function countOccurences(string, word) {
+      return string.split(word).length - 1;
     }
 
     //------------------------------------------------------------------------------------------
